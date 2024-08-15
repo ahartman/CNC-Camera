@@ -33,6 +33,13 @@ struct CameraView: View {
                     path.addLine(to: CGPoint(x: rect.midX + 100, y: rect.midY))
                     path.move(to: CGPoint(x: rect.midX, y: rect.midY - 100))
                     path.addLine(to: CGPoint(x: rect.midX, y: rect.midY + 100))
+                    path.addArc(
+                        center: CGPoint(x: rect.midX, y: rect.midY),
+                        radius: 20,
+                        startAngle: .degrees(0),
+                        endAngle: .degrees(360),
+                        clockwise: false
+                    )
                 }
                 .stroke(.white, lineWidth: 1)
             }
