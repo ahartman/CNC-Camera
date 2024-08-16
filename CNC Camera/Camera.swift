@@ -23,16 +23,6 @@ class Camera: NSObject {
         AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTrueDepthCamera, .builtInDualCamera, .builtInDualWideCamera, .builtInWideAngleCamera, .builtInDualWideCamera], mediaType: .video, position: .unspecified).devices
     }
 
-    private var frontCaptureDevices: [AVCaptureDevice] {
-        allCaptureDevices
-            .filter { $0.position == .front }
-    }
-
-    private var backCaptureDevices: [AVCaptureDevice] {
-        allCaptureDevices
-            .filter { $0.position == .back }
-    }
-
     private var captureDevices: [AVCaptureDevice] {
         var devices = [AVCaptureDevice]()
         #if os(macOS) || (os(iOS) && targetEnvironment(macCatalyst))
@@ -66,16 +56,6 @@ class Camera: NSObject {
 
     var isRunning: Bool {
         captureSession.isRunning
-    }
-
-    var isUsingFrontCaptureDevice: Bool {
-        guard let captureDevice = captureDevice else { return false }
-        return frontCaptureDevices.contains(captureDevice)
-    }
-
-    var isUsingBackCaptureDevice: Bool {
-        guard let captureDevice = captureDevice else { return false }
-        return backCaptureDevices.contains(captureDevice)
     }
 
     private var addToPreviewStream: ((CIImage) -> Void)?
@@ -200,7 +180,6 @@ class Camera: NSObject {
     private func updateVideoOutputConnection() {
         if let videoOutput = videoOutput, let videoOutputConnection = videoOutput.connection(with: .video) {
             if videoOutputConnection.isVideoMirroringSupported {
-                // videoOutputConnection.isVideoMirrored = isUsingFrontCaptureDevice
                 videoOutputConnection.isVideoMirrored = defaults.bool(forKey: "isMirrored")
             }
         }
@@ -255,11 +234,6 @@ class Camera: NSObject {
         } else {
             captureDevice = AVCaptureDevice.default(for: .video)
         }
-    }
-
-    @objc
-    func updateForDeviceOrientation() {
-        // TODO: Figure out if we need this for anything.
     }
 }
 
