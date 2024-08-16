@@ -10,6 +10,8 @@ import SwiftUI
 struct CameraView: View {
     @ObservedObject private var model = DataModel()
     @State private var popover = false
+    @AppStorage("crosshairColor") private var crosshairColor: Color = .black
+    @AppStorage("crosshairLinewidth") private var crosshairLineWidth: Int = 1
 
     var body: some View {
         GeometryReader { geo in
@@ -28,20 +30,7 @@ struct CameraView: View {
                     .background(.black.opacity(0.75))
             }
             .overlay(alignment: .center) {
-                Path { path in
-                    path.move(to: CGPoint(x: rect.midX - 100, y: rect.midY))
-                    path.addLine(to: CGPoint(x: rect.midX + 100, y: rect.midY))
-                    path.move(to: CGPoint(x: rect.midX, y: rect.midY - 100))
-                    path.addLine(to: CGPoint(x: rect.midX, y: rect.midY + 100))
-                    path.addArc(
-                        center: CGPoint(x: rect.midX, y: rect.midY),
-                        radius: 20,
-                        startAngle: .degrees(0),
-                        endAngle: .degrees(360),
-                        clockwise: false
-                    )
-                }
-                .stroke(.white, lineWidth: 1)
+                crosshairView(rect: rect)
             }
         }
         .task {
@@ -68,6 +57,34 @@ struct CameraView: View {
                 model.camera.updateMirroring()
             }
             Spacer()
+            Menu {
+                Section("Color") {
+                    Button { crosshairColor = .white } label: {
+                        Label("White", systemImage: "rectangle.stack.badge.plus.fill")
+                    }
+                    Button { crosshairColor = .black } label: {
+                        Label("Black", systemImage: "rectangle.stack.badge.plus")
+                    }
+                    Button { crosshairColor = .red } label: {
+                        Label("Red", systemImage: "rectangle.stack.badge.plus")
+                    }
+                }
+                Divider()
+                Section("Line width") {
+                    Button { crosshairLineWidth = 1 } label: {
+                        Label("1 pixel", systemImage: "rectangle.stack.badge.plus.fill")
+                    }
+                    Button { crosshairLineWidth = 2 } label: {
+                        Label("2 pixels", systemImage: "rectangle.stack.badge.plus")
+                    }
+                    Button { crosshairLineWidth = 3 } label: {
+                        Label("3 pixels", systemImage: "rectangle.stack.badge.plus")
+                    }
+                }
+            } label: {
+                Label("Crosshair Settings", systemImage: "scope")
+            }
+            Spacer()
             Button {
                 popover = true
             } label: {
@@ -75,11 +92,11 @@ struct CameraView: View {
             }
             .popover(isPresented: $popover) {
                 Text("""
-                Connect one or more USB cameras to your Mac.\nAfter that, open CNC Camera and use the button 'Select camera' to cycle through the built-in and connected cameras.\nExternal cameras usually are not mirrored which is counterintuitve. Use 'Mirror Image' to switch on mirroring; this setting is saved.
+                Open 'CNC Camera' after connecting one or more USB cameras to your Mac. External cameras usually are not mirrored which is counterintuitive.\n● 'Switch Camera' to cycle through the built-in and connected cameras.\n● 'Mirror Image' to switch on mirroring.\n● 'Crosshair Settings' to set line color and line width.
                 """)
                 .font(.title2)
                 .foregroundStyle(.black)
-                .frame(width: 300)
+                .frame(width: 400)
                 .padding()
             }
             Spacer()
@@ -88,5 +105,48 @@ struct CameraView: View {
         .foregroundColor(.white)
         .buttonStyle(.plain)
         .padding()
+    }
+
+    private func crosshairView(rect: CGRect) -> some View {
+        Path { path in
+            let half = CGFloat(150)
+            path.move(to: CGPoint(x: rect.midX - half, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.midX + half, y: rect.midY))
+            path.move(to: CGPoint(x: rect.midX, y: rect.midY - half))
+            path.addLine(to: CGPoint(x: rect.midX, y: rect.midY + half))
+            path.move(to: CGPoint(x: rect.midX, y: rect.midY))
+            path.addArc(
+                center: CGPoint(x: rect.midX, y: rect.midY),
+                radius: 20,
+                startAngle: .degrees(0),
+                endAngle: .degrees(360),
+                clockwise: false
+            )
+        }
+        .stroke(crosshairColor, lineWidth: CGFloat(crosshairLineWidth))
+    }
+}
+
+extension Color: RawRepresentable {
+    public init?(rawValue: String) {
+        guard let data = Data(base64Encoded: rawValue) else {
+            self = .black
+            return
+        }
+        do {
+            let color = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? UIColor ?? .black
+            self = Color(color)
+        } catch {
+            self = .black
+        }
+    }
+
+    public var rawValue: String {
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: UIColor(self), requiringSecureCoding: false) as Data
+            return data.base64EncodedString()
+        } catch {
+            return ""
+        }
     }
 }
