@@ -188,8 +188,9 @@ class Camera: NSObject {
     func updateMirroring() {
         if let videoOutput = videoOutput, let videoOutputConnection = videoOutput.connection(with: .video) {
             if videoOutputConnection.isVideoMirroringSupported {
-                // videoOutputConnection.isVideoMirrored = !videoOutputConnection.isVideoMirrored
+                //videoOutputConnection.isVideoMirrored = !videoOutputConnection.isVideoMirrored
                 videoOutputConnection.isVideoMirrored = defaults.bool(forKey: "isMirrored")
+                print(videoOutputConnection.isVideoMirrored)
             }
         }
     }

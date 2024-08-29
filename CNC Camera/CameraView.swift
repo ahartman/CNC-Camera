@@ -20,15 +20,20 @@ struct CameraView: View {
                 .overlay(alignment: .bottom) {
                     buttonsView()
                         .frame(height: geo.size.height * 0.05)
-                        .background(.black.opacity(0.75))
+                    // .background(.black.opacity(0.75))
                 }
                 .overlay(alignment: .center) {
                     crosshairView(rect: rect)
                 }
         }
+        .onAppear {
+            Task { await model.camera.start()}
+        }
+        /*
         .task {
             await model.camera.start()
         }
+         */
     }
 
     private func imageView(geo: GeometryProxy) -> some View {
@@ -43,26 +48,27 @@ struct CameraView: View {
     }
 
     private func buttonsView() -> some View {
-        HStack {
-            Spacer()
-            Button {
-                model.camera.switchCaptureDevice()
-            } label: {
-                Label("Switch Camera", systemImage: "arrow.triangle.2.circlepath")
-            }
-            Spacer()
-            Toggle(isOn: $model.isMirrored) {
-                let sfSymbol = "arrowtriangle.right.and.line.vertical.and.arrowtriangle.left"
-                let image = model.isMirrored ? "\(sfSymbol).fill" : sfSymbol
-                Label("Mirror Image", systemImage: image)
-            }
-            .toggleStyle(.button)
-            .onChange(of: model.isMirrored) { _ in
-                model.camera.updateMirroring()
-            }
-            Spacer()
-            Menu {
-                Section("Color") {
+        ZStack {
+            Color.black.opacity(0.75)
+            HStack {
+                Spacer()
+                Button {
+                    model.camera.switchCaptureDevice()
+                } label: {
+                    Label("Switch Camera", systemImage: "arrow.triangle.2.circlepath")
+                }
+                Spacer()
+                Button {
+                    model.isMirrored = !model.isMirrored
+                    model.camera.updateMirroring()
+                } label: {
+                    let sfSymbol = "arrowtriangle.right.and.line.vertical.and.arrowtriangle.left"
+                    let image = model.isMirrored ? "\(sfSymbol).fill" : sfSymbol
+                    Label("Mirror Image", systemImage: image)
+                }
+                Spacer()
+                Menu {
+                    // Section("Color") {
                     Button { crosshairColor = .white } label: {
                         Label("White", systemImage: "rectangle.stack.badge.plus.fill")
                     }
@@ -72,9 +78,9 @@ struct CameraView: View {
                     Button { crosshairColor = .red } label: {
                         Label("Red", systemImage: "rectangle.stack.badge.plus")
                     }
-                }
-                Divider()
-                Section("Line width") {
+                    // }
+                    Divider()
+                    // Section("Line width") {
                     Button { crosshairLineWidth = 1 } label: {
                         Label("1 pixel", systemImage: "rectangle.stack.badge.plus.fill")
                     }
@@ -84,31 +90,31 @@ struct CameraView: View {
                     Button { crosshairLineWidth = 3 } label: {
                         Label("3 pixels", systemImage: "rectangle.stack.badge.plus")
                     }
+                    // }
+                } label: {
+                    Label("Crosshair Settings", systemImage: "scope")
                 }
-            } label: {
-                Label("Crosshair Settings", systemImage: "scope")
+                Spacer()
+                Button {
+                    popover = true
+                } label: {
+                    Label("How to use", systemImage: "questionmark.circle")
+                }
+                .popover(isPresented: $popover) {
+                    Text("""
+                    Open 'CNC Camera' after connecting one or more USB cameras to your Mac. External cameras usually are not mirrored which is counterintuitive.\n● 'Switch Camera' to cycle through the built-in and connected cameras.\n● 'Mirror Image' to switch on mirroring.\n● 'Crosshair Settings' to set line color and line width.
+                    """)
+                    .font(.title2)
+                    .foregroundStyle(.black)
+                    .frame(width: 400)
+                    .padding()
+                }
+                Spacer()
             }
-            Spacer()
-            Button {
-                popover = true
-            } label: {
-                Label("How to use", systemImage: "questionmark.circle")
-            }
-            .popover(isPresented: $popover) {
-                Text("""
-                Open 'CNC Camera' after connecting one or more USB cameras to your Mac. External cameras usually are not mirrored which is counterintuitive.\n● 'Switch Camera' to cycle through the built-in and connected cameras.\n● 'Mirror Image' to switch on mirroring.\n● 'Crosshair Settings' to set line color and line width.
-                """)
-                .font(.title2)
-                .foregroundStyle(.black)
-                .frame(width: 400)
-                .padding()
-            }
-            Spacer()
         }
         .font(.system(size: 24))
         .foregroundColor(.white)
         .buttonStyle(.plain)
-        .padding()
     }
 
     private func crosshairView(rect: CGRect) -> some View {
