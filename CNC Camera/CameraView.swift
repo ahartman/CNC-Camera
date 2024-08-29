@@ -16,25 +16,29 @@ struct CameraView: View {
     var body: some View {
         GeometryReader { geo in
             let rect: CGRect = geo.frame(in: .local)
-            GeometryReader { geometry in
-                if let image = model.viewfinderImage {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
+            imageView(geo: geo)
+                .overlay(alignment: .bottom) {
+                    buttonsView()
+                        .frame(height: geo.size.height * 0.05)
+                        .background(.black.opacity(0.75))
                 }
-            }
-            .overlay(alignment: .bottom) {
-                buttonsView()
-                    .frame(height: geo.size.height * 0.05)
-                    .background(.black.opacity(0.75))
-            }
-            .overlay(alignment: .center) {
-                crosshairView(rect: rect)
-            }
+                .overlay(alignment: .center) {
+                    crosshairView(rect: rect)
+                }
         }
         .task {
             await model.camera.start()
+        }
+    }
+
+    private func imageView(geo: GeometryProxy) -> some View {
+        HStack {
+            if let image = model.viewfinderImage {
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geo.size.width, height: geo.size.height)
+            }
         }
     }
 
