@@ -16,24 +16,24 @@ struct CameraView: View {
     var body: some View {
         GeometryReader { geo in
             let rect: CGRect = geo.frame(in: .local)
-            imageView(geo: geo)
-                .overlay(alignment: .bottom) {
+            ZStack {
+                imageView(geo: geo)
+                crosshairView(rect: rect)
+                VStack {
+                    Spacer()
                     buttonsView()
-                        .frame(height: geo.size.height * 0.05)
-                    // .background(.black.opacity(0.75))
+                        .frame(height: geo.size.height * 0.05, alignment: .bottom)
                 }
-                .overlay(alignment: .center) {
-                    crosshairView(rect: rect)
-                }
+            }
         }
         .onAppear {
-            Task { await model.camera.start()}
+            Task { await model.camera.start() }
         }
         /*
-        .task {
-            await model.camera.start()
-        }
-         */
+         .task {
+             await model.camera.start()
+         }
+          */
     }
 
     private func imageView(geo: GeometryProxy) -> some View {
@@ -105,7 +105,7 @@ struct CameraView: View {
                     Open 'CNC Camera' after connecting one or more USB cameras to your Mac. External cameras usually are not mirrored which is counterintuitive.\n● 'Switch Camera' to cycle through the built-in and connected cameras.\n● 'Mirror Image' to switch on mirroring.\n● 'Crosshair Settings' to set line color and line width.
                     """)
                     .font(.title2)
-                    .foregroundStyle(.black)
+                    .foregroundColor(.black)
                     .frame(width: 400)
                     .padding()
                 }
