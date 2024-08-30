@@ -17,32 +17,27 @@ struct CameraView: View {
         GeometryReader { geo in
             let rect: CGRect = geo.frame(in: .local)
             ZStack {
-                imageView(geo: geo)
+                imageView(rect: rect)
                 crosshairView(rect: rect)
                 VStack {
                     Spacer()
                     buttonsView()
-                        .frame(height: geo.size.height * 0.05, alignment: .bottom)
+                        .frame(height: rect.height * 0.05, alignment: .bottom)
                 }
             }
         }
         .onAppear {
             Task { await model.camera.start() }
         }
-        /*
-         .task {
-             await model.camera.start()
-         }
-          */
     }
 
-    private func imageView(geo: GeometryProxy) -> some View {
+    private func imageView(rect: CGRect) -> some View {
         HStack {
             if let image = model.viewfinderImage {
                 image
                     .resizable()
                     .scaledToFill()
-                    .frame(width: geo.size.width, height: geo.size.height)
+                    .frame(width: rect.width, height: rect.height)
             }
         }
     }
@@ -67,32 +62,58 @@ struct CameraView: View {
                     Label("Mirror Image", systemImage: image)
                 }
                 Spacer()
-                Menu {
-                    // Section("Color") {
-                    Button { crosshairColor = .white } label: {
-                        Label("White", systemImage: "rectangle.stack.badge.plus.fill")
+                if #available(iOS 15, *) {
+                    Menu {
+                        Section("Color") {
+                            Button { crosshairColor = .white } label: {
+                                Label("White", systemImage: "rectangle.stack.badge.plus.fill")
+                            }
+                            Button { crosshairColor = .black } label: {
+                                Label("Black", systemImage: "rectangle.stack.badge.plus")
+                            }
+                            Button { crosshairColor = .red } label: {
+                                Label("Red", systemImage: "rectangle.stack.badge.plus")
+                            }
+                        }
+                        Divider()
+                        Section("Line width") {
+                            Button { crosshairLineWidth = 1 } label: {
+                                Label("1 pixel", systemImage: "rectangle.stack.badge.plus.fill")
+                            }
+                            Button { crosshairLineWidth = 2 } label: {
+                                Label("2 pixels", systemImage: "rectangle.stack.badge.plus")
+                            }
+                            Button { crosshairLineWidth = 3 } label: {
+                                Label("3 pixels", systemImage: "rectangle.stack.badge.plus")
+                            }
+                        }
+                    } label: {
+                        Label("Crosshair Settings", systemImage: "scope")
                     }
-                    Button { crosshairColor = .black } label: {
-                        Label("Black", systemImage: "rectangle.stack.badge.plus")
+                } else {
+                    Menu {
+                        Button { crosshairColor = .white } label: {
+                            Label("White", systemImage: "rectangle.stack.badge.plus.fill")
+                        }
+                        Button { crosshairColor = .black } label: {
+                            Label("Black", systemImage: "rectangle.stack.badge.plus")
+                        }
+                        Button { crosshairColor = .red } label: {
+                            Label("Red", systemImage: "rectangle.stack.badge.plus")
+                        }
+                        Divider()
+                        Button { crosshairLineWidth = 1 } label: {
+                            Label("1 pixel", systemImage: "rectangle.stack.badge.plus.fill")
+                        }
+                        Button { crosshairLineWidth = 2 } label: {
+                            Label("2 pixels", systemImage: "rectangle.stack.badge.plus")
+                        }
+                        Button { crosshairLineWidth = 3 } label: {
+                            Label("3 pixels", systemImage: "rectangle.stack.badge.plus")
+                        }
+                    } label: {
+                        Label("Crosshair Settings", systemImage: "scope")
                     }
-                    Button { crosshairColor = .red } label: {
-                        Label("Red", systemImage: "rectangle.stack.badge.plus")
-                    }
-                    // }
-                    Divider()
-                    // Section("Line width") {
-                    Button { crosshairLineWidth = 1 } label: {
-                        Label("1 pixel", systemImage: "rectangle.stack.badge.plus.fill")
-                    }
-                    Button { crosshairLineWidth = 2 } label: {
-                        Label("2 pixels", systemImage: "rectangle.stack.badge.plus")
-                    }
-                    Button { crosshairLineWidth = 3 } label: {
-                        Label("3 pixels", systemImage: "rectangle.stack.badge.plus")
-                    }
-                    // }
-                } label: {
-                    Label("Crosshair Settings", systemImage: "scope")
                 }
                 Spacer()
                 Button {
@@ -143,9 +164,13 @@ extension Color: RawRepresentable {
             self = .black
             return
         }
+
         do {
-            let color = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? UIColor ?? .black
-            self = Color(color)
+            if let color = try NSKeyedUnarchiver.unarchivedObject(ofClass: UIColor.self, from: data) {
+                self = Color(color)
+            } else {
+                self = .black
+            }
         } catch {
             self = .black
         }
