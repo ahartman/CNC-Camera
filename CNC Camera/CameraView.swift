@@ -10,8 +10,12 @@ import SwiftUI
 struct CameraView: View {
     @ObservedObject private var model = DataModel()
     @State private var popover = false
+    @AppStorage("mirrored") private var mirrored: Bool = false
     @AppStorage("crosshairColor") private var crosshairColor: Color = .black
-    @AppStorage("crosshairLinewidth") private var crosshairLineWidth: Int = 1
+    @AppStorage("crosshairLinewidth") private var crosshairLineWidth: Double = 1.0
+    @AppStorage("magnification") private var magnification: Int = 1 {
+        didSet { model.camera.updateZoom() }
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -27,12 +31,15 @@ struct CameraView: View {
             }
         }
         .onAppear {
-            Task { await model.camera.start() }
+            Task {
+                await model.camera.start()
+                model.camera.updateZoom()
+            }
         }
     }
 
     private func imageView(rect: CGRect) -> some View {
-        HStack {
+        Group {
             if let image = model.viewfinderImage {
                 image
                     .resizable()
@@ -44,7 +51,7 @@ struct CameraView: View {
 
     private func buttonsView() -> some View {
         ZStack {
-            Color.black.opacity(0.75)
+            Color.black.opacity(0.5)
             HStack {
                 Spacer()
                 Button {
@@ -54,66 +61,34 @@ struct CameraView: View {
                 }
                 Spacer()
                 Button {
-                    model.isMirrored = !model.isMirrored
-                    model.camera.updateMirroring()
+                    mirrored = !mirrored
+                    model.camera.updateVideoOutputConnection()
                 } label: {
                     let sfSymbol = "arrowtriangle.right.and.line.vertical.and.arrowtriangle.left"
-                    let image = model.isMirrored ? "\(sfSymbol).fill" : sfSymbol
-                    Label("Mirror Image", systemImage: image)
+                    let image = mirrored ? "\(sfSymbol).fill" : sfSymbol
+                    Label("Mirroring", systemImage: image)
                 }
                 Spacer()
-                if #available(iOS 15, *) {
-                    Menu {
-                        Section("Color") {
-                            Button { crosshairColor = .white } label: {
-                                Label("White", systemImage: "rectangle.stack.badge.plus.fill")
-                            }
-                            Button { crosshairColor = .black } label: {
-                                Label("Black", systemImage: "rectangle.stack.badge.plus")
-                            }
-                            Button { crosshairColor = .red } label: {
-                                Label("Red", systemImage: "rectangle.stack.badge.plus")
-                            }
-                        }
+                Menu {
+                    Button { magnification = 1 } label: { Text("x1") }
+                    Button { magnification = 2 } label: { Text("x2") }
+                    Button { magnification = 3 } label: { Text("x3") }
+                } label: {
+                    Label("Magnification", systemImage: "magnifyingglass")
+                }
+                Spacer()
+                Menu {
+                    if #available(iOS 15, *) {
+                        Section("Color") { doColorButtons() }
                         Divider()
-                        Section("Line width") {
-                            Button { crosshairLineWidth = 1 } label: {
-                                Label("1 pixel", systemImage: "rectangle.stack.badge.plus.fill")
-                            }
-                            Button { crosshairLineWidth = 2 } label: {
-                                Label("2 pixels", systemImage: "rectangle.stack.badge.plus")
-                            }
-                            Button { crosshairLineWidth = 3 } label: {
-                                Label("3 pixels", systemImage: "rectangle.stack.badge.plus")
-                            }
-                        }
-                    } label: {
-                        Label("Crosshair Settings", systemImage: "scope")
-                    }
-                } else {
-                    Menu {
-                        Button { crosshairColor = .white } label: {
-                            Label("White", systemImage: "rectangle.stack.badge.plus.fill")
-                        }
-                        Button { crosshairColor = .black } label: {
-                            Label("Black", systemImage: "rectangle.stack.badge.plus")
-                        }
-                        Button { crosshairColor = .red } label: {
-                            Label("Red", systemImage: "rectangle.stack.badge.plus")
-                        }
+                        Section("Line width") { doWidthButtons() }
+                    } else {
+                        doColorButtons()
                         Divider()
-                        Button { crosshairLineWidth = 1 } label: {
-                            Label("1 pixel", systemImage: "rectangle.stack.badge.plus.fill")
-                        }
-                        Button { crosshairLineWidth = 2 } label: {
-                            Label("2 pixels", systemImage: "rectangle.stack.badge.plus")
-                        }
-                        Button { crosshairLineWidth = 3 } label: {
-                            Label("3 pixels", systemImage: "rectangle.stack.badge.plus")
-                        }
-                    } label: {
-                        Label("Crosshair Settings", systemImage: "scope")
+                        doWidthButtons()
                     }
+                } label: {
+                    Label("Crosshair", systemImage: "scope")
                 }
                 Spacer()
                 Button {
@@ -123,9 +98,13 @@ struct CameraView: View {
                 }
                 .popover(isPresented: $popover) {
                     Text("""
-                    Open 'CNC Camera' after connecting one or more USB cameras to your Mac. External cameras usually are not mirrored which is counterintuitive.\n● 'Switch Camera' to cycle through the built-in and connected cameras.\n● 'Mirror Image' to switch on mirroring.\n● 'Crosshair Settings' to set line color and line width.
+                    Open 'CNC Camera' after connecting one or more USB cameras to your Mac.
+                    External cameras usually are not mirrored which is counterintuitive.
+                    ● 'Switch Camera' to cycle through the built-in and connected cameras.
+                    ● 'Mirroring' to switch on mirroring.
+                    ● 'Magnification' to set magnification of the image.
+                    ● 'Crosshair' to set line color and width.
                     """)
-                    .font(.title2)
                     .foregroundColor(.black)
                     .frame(width: 400)
                     .padding()
@@ -133,9 +112,25 @@ struct CameraView: View {
                 Spacer()
             }
         }
-        .font(.system(size: 24))
+        .font(.system(size: 18))
         .foregroundColor(.white)
         .buttonStyle(.plain)
+    }
+
+    func doColorButtons() -> some View {
+        Group {
+            Button { crosshairColor = .white } label: { Text("White") }
+            Button { crosshairColor = .black } label: { Text("Black") }
+            Button { crosshairColor = .red } label: { Text("Red") }
+        }
+    }
+
+    func doWidthButtons() -> some View {
+        Group {
+            Button { crosshairLineWidth = 0.5 } label: { Text("0.5 pixel") }
+            Button { crosshairLineWidth = 1 } label: { Text("1 pixel") }
+            Button { crosshairLineWidth = 2 } label: { Text("2 pixels") }
+        }
     }
 
     private func crosshairView(rect: CGRect) -> some View {
@@ -155,33 +150,5 @@ struct CameraView: View {
             )
         }
         .stroke(crosshairColor, lineWidth: CGFloat(crosshairLineWidth))
-    }
-}
-
-extension Color: RawRepresentable {
-    public init?(rawValue: String) {
-        guard let data = Data(base64Encoded: rawValue) else {
-            self = .black
-            return
-        }
-
-        do {
-            if let color = try NSKeyedUnarchiver.unarchivedObject(ofClass: UIColor.self, from: data) {
-                self = Color(color)
-            } else {
-                self = .black
-            }
-        } catch {
-            self = .black
-        }
-    }
-
-    public var rawValue: String {
-        do {
-            let data = try NSKeyedArchiver.archivedData(withRootObject: UIColor(self), requiringSecureCoding: false) as Data
-            return data.base64EncodedString()
-        } catch {
-            return ""
-        }
     }
 }

@@ -25,16 +25,7 @@ class Camera: NSObject {
 
     private var captureDevices: [AVCaptureDevice] {
         var devices = [AVCaptureDevice]()
-        #if os(macOS) || (os(iOS) && targetEnvironment(macCatalyst))
-        devices += allCaptureDevices
-        #else
-        if let backDevice = backCaptureDevices.first {
-            devices += [backDevice]
-        }
-        if let frontDevice = frontCaptureDevices.first {
-            devices += [frontDevice]
-        }
-        #endif
+        devices = allCaptureDevices
         return devices
     }
 
@@ -116,11 +107,8 @@ class Camera: NSObject {
 
         self.deviceInput = deviceInput
         self.videoOutput = videoOutput
-
         updateVideoOutputConnection()
-
         isCaptureSessionConfigured = true
-
         success = true
     }
 
@@ -158,7 +146,6 @@ class Camera: NSObject {
 
     private func updateSessionForCaptureDevice(_ captureDevice: AVCaptureDevice) {
         guard isCaptureSessionConfigured else { return }
-
         captureSession.beginConfiguration()
         defer { captureSession.commitConfiguration() }
 
@@ -173,24 +160,26 @@ class Camera: NSObject {
                 captureSession.addInput(deviceInput)
             }
         }
-
         updateVideoOutputConnection()
     }
 
-    private func updateVideoOutputConnection() {
+    func updateVideoOutputConnection() {
         if let videoOutput = videoOutput, let videoOutputConnection = videoOutput.connection(with: .video) {
             if videoOutputConnection.isVideoMirroringSupported {
-                videoOutputConnection.isVideoMirrored = defaults.bool(forKey: "isMirrored")
+                videoOutputConnection.isVideoMirrored = defaults.bool(forKey: "mirrored")
             }
         }
     }
 
-    func updateMirroring() {
-        if let videoOutput = videoOutput, let videoOutputConnection = videoOutput.connection(with: .video) {
-            if videoOutputConnection.isVideoMirroringSupported {
-                //videoOutputConnection.isVideoMirrored = !videoOutputConnection.isVideoMirrored
-                videoOutputConnection.isVideoMirrored = defaults.bool(forKey: "isMirrored")
-                print(videoOutputConnection.isVideoMirrored)
+    func updateZoom() {
+        if let captureDevice = captureDevice {
+            do {
+                try captureDevice.lockForConfiguration()
+                captureDevice.videoZoomFactor = CGFloat(defaults.integer(forKey: "magnification"))
+                captureDevice.unlockForConfiguration()
+                print("magnification: \(defaults.integer(forKey: "magnification"))")
+            } catch {
+                print("magnification error")
             }
         }
     }

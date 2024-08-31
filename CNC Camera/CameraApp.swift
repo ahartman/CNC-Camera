@@ -12,8 +12,8 @@ let defaults = UserDefaults.standard
 @main
 struct CameraApp: App {
     init() {
-         if defaults.object(forKey: "isMirrored") == nil {
-            defaults.set(true, forKey: "isMirrored")
+         if defaults.object(forKey: "mirrored") == nil {
+            defaults.set(true, forKey: "mirrored")
         }
     }
 
