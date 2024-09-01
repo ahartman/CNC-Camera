@@ -107,7 +107,7 @@ class Camera: NSObject {
 
         self.deviceInput = deviceInput
         self.videoOutput = videoOutput
-        updateVideoOutputConnection()
+        updateMirroring()
         isCaptureSessionConfigured = true
         success = true
     }
@@ -160,10 +160,9 @@ class Camera: NSObject {
                 captureSession.addInput(deviceInput)
             }
         }
-        updateVideoOutputConnection()
     }
 
-    func updateVideoOutputConnection() {
+    func updateMirroring() {
         if let videoOutput = videoOutput, let videoOutputConnection = videoOutput.connection(with: .video) {
             if videoOutputConnection.isVideoMirroringSupported {
                 videoOutputConnection.isVideoMirrored = defaults.bool(forKey: "mirrored")
@@ -171,14 +170,14 @@ class Camera: NSObject {
         }
     }
 
-    func updateZoom() {
+    func updateMagnification() {
         if let captureDevice = captureDevice {
             do {
+                let zoom = max(defaults.integer(forKey: "magnification"), 1)
                 try captureDevice.lockForConfiguration()
-                captureDevice.videoZoomFactor = CGFloat(defaults.integer(forKey: "magnification"))
+                captureDevice.videoZoomFactor = CGFloat(zoom)
                 captureDevice.unlockForConfiguration()
-                print("magnification: \(defaults.integer(forKey: "magnification"))")
-            } catch {
+           } catch {
                 print("magnification error")
             }
         }

@@ -13,9 +13,9 @@ struct CameraView: View {
     @AppStorage("mirrored") private var mirrored: Bool = false
     @AppStorage("crosshairColor") private var crosshairColor: Color = .black
     @AppStorage("crosshairLinewidth") private var crosshairLineWidth: Double = 1.0
-    @AppStorage("magnification") private var magnification: Int = 1 {
-        didSet { model.camera.updateZoom() }
-    }
+    @AppStorage("magnification") private var magnification: Int = 1 /* {
+         didSet { model.camera.updateZoom() }
+     } */
 
     var body: some View {
         GeometryReader { geo in
@@ -33,11 +33,12 @@ struct CameraView: View {
         .onAppear {
             Task {
                 await model.camera.start()
-                model.camera.updateZoom()
+                model.camera.updateMirroring()
+                model.camera.updateMagnification()
             }
         }
     }
-
+    
     private func imageView(rect: CGRect) -> some View {
         Group {
             if let image = model.viewfinderImage {
@@ -48,75 +49,83 @@ struct CameraView: View {
             }
         }
     }
-
+    
     private func buttonsView() -> some View {
         ZStack {
             Color.black.opacity(0.5)
             HStack {
-                Spacer()
-                Button {
-                    model.camera.switchCaptureDevice()
-                } label: {
-                    Label("Switch Camera", systemImage: "arrow.triangle.2.circlepath")
-                }
-                Spacer()
-                Button {
-                    mirrored = !mirrored
-                    model.camera.updateVideoOutputConnection()
-                } label: {
-                    let sfSymbol = "arrowtriangle.right.and.line.vertical.and.arrowtriangle.left"
-                    let image = mirrored ? "\(sfSymbol).fill" : sfSymbol
-                    Label("Mirroring", systemImage: image)
-                }
-                Spacer()
-                Menu {
-                    Button { magnification = 1 } label: { Text("x1") }
-                    Button { magnification = 2 } label: { Text("x2") }
-                    Button { magnification = 3 } label: { Text("x3") }
-                } label: {
-                    Label("Magnification", systemImage: "magnifyingglass")
-                }
-                Spacer()
-                Menu {
-                    if #available(iOS 15, *) {
-                        Section("Color") { doColorButtons() }
-                        Divider()
-                        Section("Line width") { doWidthButtons() }
-                    } else {
-                        doColorButtons()
-                        Divider()
-                        doWidthButtons()
+                Group {
+                    Spacer()
+                    Button {
+                        model.camera.switchCaptureDevice()
+                    } label: {
+                        Label("Switch Camera", systemImage: "arrow.triangle.2.circlepath")
                     }
-                } label: {
-                    Label("Crosshair", systemImage: "scope")
+                    Spacer()
+                    Button {
+                        mirrored = !mirrored
+                        model.camera.updateMirroring()
+                    } label: {
+                        let sfSymbol = "arrowtriangle.right.and.line.vertical.and.arrowtriangle.left"
+                        let image = mirrored ? "\(sfSymbol).fill" : sfSymbol
+                        Label("Mirroring", systemImage: image)
+                    }
+                    Spacer()
+                    Menu {
+                        Button { magnification = 1 }
+                            label: { Text("x1") }
+                        Button { magnification = 2 }
+                            label: { Text("x2") }
+                        Button { magnification = 3
+                        } label: { Text("x3") }
+                    } label: {
+                        Label("Magnification", systemImage: "magnifyingglass")
+                    }
+                    .onChange(of: magnification) { _ in model.camera.updateMagnification()}
+                    Spacer()
                 }
-                Spacer()
-                Button {
-                    popover = true
-                } label: {
-                    Label("How to use", systemImage: "questionmark.circle")
+                Group {
+                    Menu {
+                        if #available(iOS 15, *) {
+                            Section("Color") { doColorButtons() }
+                            Divider()
+                            Section("Line width") { doWidthButtons() }
+                        } else {
+                            doColorButtons()
+                            Divider()
+                            doWidthButtons()
+                        }
+                    } label: {
+                        Label("Crosshair", systemImage: "scope")
+                    }
+                    Spacer()
+                    Button {
+                        popover = true
+                    } label: {
+                        Label("How to use", systemImage: "questionmark.circle")
+                    }
+                    .popover(isPresented: $popover) {
+                        Text("""
+                        Open 'CNC Camera' after connecting one or more USB cameras to your Mac.
+                        External cameras usually are not mirrored which is counterintuitive.
+                        ● 'Switch Camera' to cycle through the built-in and connected cameras.
+                        ● 'Mirroring' to switch on mirroring.
+                        ● 'Magnification' to set magnification of the image.
+                        ● 'Crosshair' to set line color and width.
+                        """)
+                        .foregroundColor(.black)
+                        .frame(width: 400)
+                        .padding()
+                    }
+                    Spacer()
                 }
-                .popover(isPresented: $popover) {
-                    Text("""
-                    Open 'CNC Camera' after connecting one or more USB cameras to your Mac.
-                    External cameras usually are not mirrored which is counterintuitive.
-                    ● 'Switch Camera' to cycle through the built-in and connected cameras.
-                    ● 'Mirroring' to switch on mirroring.
-                    ● 'Magnification' to set magnification of the image.
-                    ● 'Crosshair' to set line color and width.
-                    """)
-                    .foregroundColor(.black)
-                    .frame(width: 400)
-                    .padding()
-                }
-                Spacer()
             }
         }
         .font(.system(size: 18))
         .foregroundColor(.white)
         .buttonStyle(.plain)
     }
-
+    
     func doColorButtons() -> some View {
         Group {
             Button { crosshairColor = .white } label: { Text("White") }
@@ -124,7 +133,7 @@ struct CameraView: View {
             Button { crosshairColor = .red } label: { Text("Red") }
         }
     }
-
+    
     func doWidthButtons() -> some View {
         Group {
             Button { crosshairLineWidth = 0.5 } label: { Text("0.5 pixel") }
@@ -132,7 +141,7 @@ struct CameraView: View {
             Button { crosshairLineWidth = 2 } label: { Text("2 pixels") }
         }
     }
-
+    
     private func crosshairView(rect: CGRect) -> some View {
         Path { path in
             let half = CGFloat(150)
