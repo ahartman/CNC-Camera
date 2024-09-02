@@ -177,7 +177,7 @@ class Camera: NSObject {
                 try captureDevice.lockForConfiguration()
                 captureDevice.videoZoomFactor = CGFloat(zoom)
                 captureDevice.unlockForConfiguration()
-           } catch {
+            } catch {
                 print("magnification error")
             }
         }

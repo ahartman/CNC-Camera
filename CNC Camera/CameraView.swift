@@ -10,12 +10,11 @@ import SwiftUI
 struct CameraView: View {
     @ObservedObject private var model = DataModel()
     @State private var popover = false
+    
     @AppStorage("mirrored") private var mirrored: Bool = false
     @AppStorage("crosshairColor") private var crosshairColor: Color = .black
     @AppStorage("crosshairLinewidth") private var crosshairLineWidth: Double = 1.0
-    @AppStorage("magnification") private var magnification: Int = 1 /* {
-         didSet { model.camera.updateZoom() }
-     } */
+    @AppStorage("magnification") private var magnification: Int = 1
 
     var body: some View {
         GeometryReader { geo in
@@ -39,7 +38,7 @@ struct CameraView: View {
         }
     }
     
-    private func imageView(rect: CGRect) -> some View {
+    func imageView(rect: CGRect) -> some View {
         Group {
             if let image = model.viewfinderImage {
                 image
@@ -50,7 +49,7 @@ struct CameraView: View {
         }
     }
     
-    private func buttonsView() -> some View {
+    func buttonsView() -> some View {
         ZStack {
             Color.black.opacity(0.5)
             HStack {
@@ -142,7 +141,7 @@ struct CameraView: View {
         }
     }
     
-    private func crosshairView(rect: CGRect) -> some View {
+    func crosshairView(rect: CGRect) -> some View {
         Path { path in
             let half = CGFloat(150)
             path.move(to: CGPoint(x: rect.midX - half, y: rect.midY))
