@@ -105,13 +105,17 @@ struct CameraView: View {
                     }
                     .popover(isPresented: $popover) {
                         Text("""
-                        Open 'CNC Camera' after connecting one or more USB cameras to your Mac.
-                        External cameras usually are not mirrored which is counterintuitive.
-                        ● 'Switch Camera' to cycle through the built-in and connected cameras.
-                        ● 'Mirroring' to switch on mirroring.
-                        ● 'Magnification' to set magnification of the image.
-                        ● 'Crosshair' to set line color and width.
-                        """)
+                       You should first connect your CNC Mill USB-camera to your Mac and then start CNC Camera. Theoretically you can connect multiple cameras although this is of little use.
+
+                       **Select Camera:** The app will display the built-in camera of your Mac at startup. Use 'Select Camera' to cycle through all cameras until you find the CNC Mill camera.
+
+                       **Mirroring:** A webcam will normally not be mirrored, i.e., the image moves to the left when you move the mill to the right and vice versa. This is confusing and switching on 'Mirroring' will reverse the movement and provide a natural feel.
+
+                       **Magnification:** You can switch magnification to 1x, 2x or 3x.
+
+                       **Crosshair:** You can select the line width of the crosshair as well as the color for maximum contrast with the color of your milling material.
+
+                       """)
                         .foregroundColor(.black)
                         .frame(width: 400)
                         .padding()
